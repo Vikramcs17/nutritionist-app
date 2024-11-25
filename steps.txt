@@ -1,0 +1,62 @@
+Steps for indian_food_app.py:
+
+1. DATA LOADING AND PREPROCESSING
+   - Load Indian food dataset
+   - Convert numeric columns
+   - Handle missing values
+   - Cache data using @st.cache_data
+
+2. MACHINE LEARNING MODEL
+   - Train RandomForest model
+   - Feature scaling
+   - Model evaluation (MSE, R2 score)
+   - Cache model using @st.cache_resource
+
+3. DASHBOARD UI COMPONENTS
+   - Title and filters sidebar
+   - Key metrics display
+   - Four main visualizations:
+     * Food type distribution
+     * Calories by state
+     * Nutrient composition pie chart
+     * Calories vs Protein scatter plot
+
+4. CALORIE PREDICTION SECTION
+   - Input fields for nutrients
+   - Prediction button
+   - Display predicted calories
+
+5. DIET RECIPE RECOMMENDATION SYSTEM
+   - Personal profile inputs:
+     * Weight, height, age
+     * Gender, activity level
+     * Weight goal
+   - Calculations:
+     * BMR (Basal Metabolic Rate)
+     * TDEE (Total Daily Energy Expenditure)
+     * Target calories
+   - Meal planning:
+     * Breakfast (30% of calories)
+     * Lunch (40% of calories)
+     * Dinner (30% of calories)
+
+6. HELPER FUNCTIONS
+   - calculate_bmr(): Calculate base metabolic rate
+   - calculate_tdee(): Calculate daily energy expenditure
+   - calculate_target_calories(): Adjust calories based on goal
+   - get_meal_recommendations(): Find suitable meals
+   - display_meals(): Show meal recommendations
+
+7. USER INPUT PROCESSING
+   - Form validation
+   - Error handling
+   - State preferences
+   - Dietary restrictions
+
+8. RESULTS DISPLAY
+   - Personalized meal plan
+   - Nutritional information
+   - Alternative options
+   - Warnings and recommendations
+
+Note: The application follows a logical flow from data processing to user interaction to results display, with caching mechanisms for performance optimization and comprehensive error handling throughout the pipeline.
