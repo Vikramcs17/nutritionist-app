@@ -1,20 +1,59 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 # Load the dataset
-df = pd.read_csv('./datasets/nutrients_csvfile.csv')
+@st.cache_data
+def load_and_preprocess_data():
+    df = pd.read_csv('./datasets/nutrients_csvfile.csv')
 
-# Convert relevant columns to numeric, handling non-numeric values
-numeric_columns = ['Calories', 'Protein', 'Carbs', 'Fat']
-for col in numeric_columns:
-    df[col] = pd.to_numeric(df[col], errors='coerce')
+    # Convert relevant columns to numeric, handling non-numeric values
+    numeric_columns = ['Calories', 'Protein', 'Carbs', 'Fat', 'Fiber']
+    for col in numeric_columns:
+        df[col] = pd.to_numeric(df[col].replace('t', '0'), errors='coerce')
 
-# Drop rows with missing values in these columns after conversion
-df = df.dropna(subset=numeric_columns)
+    # Drop rows with missing values
+    df = df.dropna(subset=numeric_columns)
+    return df
+
+# Train ML model
+@st.cache_resource
+def train_model(df):
+    # Prepare features and target
+    X = df[['Protein', 'Carbs', 'Fat', 'Fiber']]
+    y = df['Calories']
+
+    # Split data
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Scale features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # Train model
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train_scaled, y_train)
+
+    # Calculate metrics
+    y_pred = model.predict(X_test_scaled)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    return model, scaler, mse, r2
+
+# Load data and train model
+df = load_and_preprocess_data()
+model, scaler, mse, r2 = train_model(df)
 
 # Title and description
 st.title("Personalized Nutrition Planner")
 st.write("Calculate your daily calorie and macronutrient needs, and get meal suggestions.")
+
 
 # User Inputs
 st.sidebar.header("Enter Your Details")
@@ -67,25 +106,25 @@ def get_meal_suggestions(df, meal_calories, protein_goal):
     def get_meals_for_time(meal_time, target_calories, target_protein, num_options=1):
         # Filter for specific meal time
         meal_df = df[df['Meal_time'] == meal_time]
-        
+
         # Try to find meals within desired calorie and protein range
         suggested_meals = meal_df[
-            (meal_df['Calories'] >= target_calories * 0.8) & 
+            (meal_df['Calories'] >= target_calories * 0.8) &
             (meal_df['Calories'] <= target_calories * 1.2) &
             (meal_df['Protein'] >= target_protein * 0.5)
         ]
-        
+
         # If no meals found, try with broader calorie range
         if len(suggested_meals) == 0:
             suggested_meals = meal_df[
-                (meal_df['Calories'] >= target_calories * 0.6) & 
+                (meal_df['Calories'] >= target_calories * 0.6) &
                 (meal_df['Calories'] <= target_calories * 1.4)
             ]
-        
+
         # If still no meals found, just get any meal for that time
         if len(suggested_meals) == 0:
             suggested_meals = meal_df
-        
+
         # Return multiple random meals if available
         if len(suggested_meals) > 0:
             num_options = min(num_options, len(suggested_meals))
@@ -105,7 +144,7 @@ def get_meal_suggestions(df, meal_calories, protein_goal):
     breakfast = get_meals_for_time('Breakfast', meal_calories, protein_per_meal, num_options=2)
     lunch = get_meals_for_time('Lunch', meal_calories, protein_per_meal, num_options=3)
     dinner = get_meals_for_time('Dinner', meal_calories, protein_per_meal, num_options=3)
-    
+
     return breakfast, lunch, dinner
 
 # Calculate total calories and macros
@@ -156,3 +195,36 @@ st.dataframe(lunch_df, hide_index=True)
 st.write("\n**Dinner Options:**")
 dinner_df = meals_to_df(dinner)
 st.dataframe(dinner_df, hide_index=True)
+
+# Add ML prediction section after user inputs
+st.write("### Machine Learning Predictions")
+st.write("Our ML model predicts calories based on nutritional content:")
+
+# Add prediction interface
+st.sidebar.markdown("---")
+st.sidebar.header("Nutrition Predictor")
+pred_protein = st.sidebar.number_input("Protein (g):", min_value=0.0, max_value=100.0, value=20.0)
+pred_carbs = st.sidebar.number_input("Carbs (g):", min_value=0.0, max_value=200.0, value=50.0)
+pred_fat = st.sidebar.number_input("Fat (g):", min_value=0.0, max_value=100.0, value=15.0)
+pred_fiber = st.sidebar.number_input("Fiber (g):", min_value=0.0, max_value=50.0, value=5.0)
+
+# Make prediction
+input_features = np.array([[pred_protein, pred_carbs, pred_fat, pred_fiber]])
+input_scaled = scaler.transform(input_features)
+predicted_calories = model.predict(input_scaled)[0]
+
+# Display prediction and model metrics
+st.write(f"**Predicted Calories:** {predicted_calories:.1f} kcal")
+st.write("\n**Model Performance Metrics:**")
+st.write(f"- Mean Squared Error: {mse:.2f}")
+st.write(f"- R² Score: {r2:.3f}")
+
+# Feature importance
+feature_importance = pd.DataFrame({
+    'Feature': ['Protein', 'Carbs', 'Fat', 'Fiber'],
+    'Importance': model.feature_importances_
+})
+feature_importance = feature_importance.sort_values('Importance', ascending=False)
+
+st.write("\n**Feature Importance:**")
+st.dataframe(feature_importance)
