@@ -2,7 +2,7 @@
 
 A sophisticated nutrition analysis and meal recommendation system specialized for Indian cuisine. This application combines advanced data science techniques with traditional Indian food knowledge to provide personalized meal plans while considering regional preferences and nutritional requirements.
 
-## 🎯 Key Features
+## 🎯 Key Features.
 
 1. **Personalized Nutrition Analysis**
    - BMR (Basal Metabolic Rate) calculation using Mifflin-St Jeor Equation
